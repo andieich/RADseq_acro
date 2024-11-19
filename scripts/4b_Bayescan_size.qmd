@@ -1,0 +1,80 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(radiator)
+library(boa)
+source(here("scripts/bayescan_plot_R.r"))
+library(coda)
+```
+
+Convert `.vcf` to Bayescan
+
+```{r}
+strata_size <- read.table(here("data/meta/strata_acro.txt"),header = T) %>% 
+  mutate(STRATA = substr(STRATA, 4,4))
+
+write.table(strata_size, here("data/meta/strata_acro_size.txt"),
+            sep = "\t", 
+            row.names = F, 
+            col.names = T, 
+            quote = F)
+```
+
+```{r}
+radiator::genomic_converter(
+  data = here("data/vcf/acro_filt.recode.vcf"),
+  strata = here("data/meta/strata_acro_size.txt"),
+  output = "bayescan",
+  filename = "acro"
+)
+```
+
+Move into Bayescan folder
+
+```{bash}
+mv 02_radiator_genomic_converter_20241119@0937 ../data/bayescan
+```
+
+Since Bayescan cannot be installed on a Mac M1 and Galaxy EU only runs Bayescan 1.9 (without Q-values), run Bayescan on [Google Colab](https://colab.research.google.com/drive/1Zg6D6JzVJ5T4vnoUi0KNX0riZM1ISMnE#scrollTo=kXhor3X9_N2o). Analysis took about 6 h and cost 15 credits. Select `TPU v2-8` which has 96 cores.
+
+Look at chains
+
+```{r}
+dat_chains <- read.table(here("data/bayescan/results/acro_bayescan.sel"),colClasses="numeric")
+```
+
+```{r}
+parameter="Fst1"
+plot(density(dat_chains[[parameter]]), xlab=parameter, main=paste(parameter,"posterior distribution"))
+```
+
+```{r}
+boa.hpd(dat_chains[[parameter]],0.05)
+```
+
+```{r}
+dat_chains_mcmc <- mcmc(dat_chains,thin=10) 
+
+summary(dat_chains_mcmc)
+autocorr.diag(dat_chains_mcmc)
+effectiveSize(dat_chains_mcmc)
+```
+
+```{r}
+dat_bayescan <- read.table(here("data/bayescan/results/acro_bayescan_fst.txt"))
+
+dat_bayescan_outlier <- plot_bayescan(dat_bayescan,FDR=0.05)
+
+dat_bayescan <- dat_bayescan %>% 
+  janitor::clean_names()
+  
+dat_bayescan[dat_bayescan_outlier$outliers,]
+
+
+```
