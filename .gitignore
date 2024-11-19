@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+#Data folder too large
+data/
+
+#Mac
+*.DS_Store

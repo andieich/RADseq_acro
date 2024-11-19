@@ -1,0 +1,83 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(LEA)
+```
+
+Convert `.vcf` to `.lfmm`
+
+```{r}
+vcf2lfmm(input.file = here("data/vcf/acro_filt.recode.vcf"),
+         output.file = here("data/lfmm/acro.lfmm"))
+```
+
+Bug in function, output.file is not considered, move manually
+
+```{bash}
+mv ../data/vcf/acro_filt.recode.geno ../data/vcf/acro_filt.recode.lfmm ../data/vcf/acro_filt.recode.removed ../data/vcf/acro_filt.recode.vcfsnp ../data/lfmm
+```
+
+Read lfmm file
+
+```{r}
+acro_lea <-  here("data/lfmm/acro_filt.recode.lfmm")
+```
+
+```{r}
+project_acro = snmf(acro_lea,
+               K = 1:10,
+               entropy = TRUE,
+               repetitions = 10,
+               project = "new",
+               CPU = 10)
+```
+
+```{r}
+plot(project_acro, 
+     col = "blue", pch = 19, cex = 1.2)#only one pop
+```
+
+Only one population. But try to plot 2:
+
+```{r}
+best = which.min(cross.entropy(project_acro, K = 2))
+
+my.colors <- c("tomato", "lightblue","olivedrab", "gold", "darkblue")
+
+pops <- barchart(project_acro, K = 2, run = best,
+         border = NA, space = 0,
+         col = my.colors,
+         xlab = "Individuals",
+         ylab = "Ancestry proportions",
+         main = "Ancestry matrix")
+```
+
+```{r}
+dat_acro_snmf <- data.frame(Q(project_acro, K = 2, run = best))
+names(dat_acro_snmf) <- c("pop1", "pop2")
+```
+
+Add metadata
+
+```{r}
+dat_meta_acro <- read.csv(here("data/meta/acro_filt_samples_clean.csv"))
+
+dat_acro_snmf <- bind_cols(dat_acro_snmf,
+                           dat_meta_acro)
+```
+
+```{r}
+dat_acro_snmf %>% 
+  pivot_longer(cols = c("pop1", "pop2"), names_to = "pop", values_to = "frac") %>% 
+  ggplot(aes(x = sample_id, y = frac, fill = pop))+
+    geom_bar(stat = "identity")+
+  facet_wrap(site + depth ~ size,scales = "free", ncol = 4)
+```
+
+No association of pops and site, depth, size

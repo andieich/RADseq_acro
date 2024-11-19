@@ -1,0 +1,91 @@
+---
+title: "pcadapt"
+format: html
+editor: visual
+---
+
+```{r}
+library(pcadapt)
+library(here)
+library(tidyverse)
+library(qvalue)
+```
+
+Following <https://bcm-uga.github.io/pcadapt/articles/pcadapt.html>
+
+Convert vcf to plink
+
+```{bash}
+plink --vcf ../data/vcf/acro_filt.recode.vcf --make-bed --allow-extra-chr --out ../data/pcadapt/acro_filt
+```
+
+```{r}
+acro_bed <- read.pcadapt(here("data/pcadapt/acro_filt.bed"),type = "bed")
+```
+
+```{r}
+acro_pcadapt <- pcadapt(input = acro_bed, K = 5)
+plot(acro_pcadapt, option = "screeplot")
+```
+
+```{r}
+plot(acro_pcadapt, option="manhattan")
+```
+
+```{r}
+summary(acro_pcadapt)
+
+plot(acro_pcadapt, option = "qqplot")
+```
+
+```{r}
+hist(acro_pcadapt$pvalues, xlab = "p-values", main = NULL, breaks = 50, col = "orange")
+plot(acro_pcadapt, option = "stat.distribution")
+```
+
+Find outliers with Q value
+
+```{r}
+qval <- qvalue(acro_pcadapt$pvalues)$qvalues
+alpha <- 0.1
+outliers_q <- which(qval < alpha)
+length(outliers_q)
+```
+
+BH
+
+```{r}
+padj_bh <- p.adjust(acro_pcadapt$pvalues,method="BH")
+outliers_bh <- which(padj_bh < alpha)
+length(outliers_bh)
+```
+
+Bonferroni
+
+```{r}
+padj_bf <- p.adjust(acro_pcadapt$pvalues,method="bonferroni")
+outliers_bf <- which(padj_bf < alpha)
+length(outliers_bf)
+```
+
+Compile data
+
+```{r}
+
+dat_outlier_pcadapt <- data.frame(locus = c(outliers_q, 
+                                               outliers_bh, 
+                                               outliers_bf), 
+                                  type = c(rep("pcadapt_q_val",length(outliers_q)), 
+                                           rep("pcadapt_p_val_bh",length(outliers_bh)), 
+                                           rep("pcadapt_p_val_bf",length(outliers_bf)))) %>% 
+  mutate(value = "yes") %>%  # Add a helper column with value 1
+  pivot_wider(names_from = type, values_from = value, values_fill = "no") %>%
+  group_by(locus) %>%
+  summarize(across(everything(), max), .groups = "drop")
+```
+
+```{r}
+write.csv(dat_outlier_pcadapt,
+          file = here("data/output/dat_outlier_pcadapt.csv"), 
+          row.names = F)
+```

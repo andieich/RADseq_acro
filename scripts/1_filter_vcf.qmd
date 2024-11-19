@@ -1,0 +1,80 @@
+---
+title: "1. Filter VCF file"
+format: html
+editor: visual
+---
+
+Extract sample IDs with `vcftools` (install if necessary with `brew install vcftools`).
+
+```{bash}
+vcf-query -l ../data/vcf/acropora_third_filters_m3_p80_x0_S2.singleton.unlinked_0.5_100kbp.imputed_k1.vcf
+```
+
+Copy samples that should be removed into `remove_samples.txt`
+
+```{bash}
+echo "Acropora_2TSAL41Da-rep
+Acropora_E2B-B-5M-CB-052
+Acropora_E2B-UB-15M-CB-002
+Acropora_TIA-B-15M-CB-322
+Acropora_TIA-B-15M-CB-330" > ../data/vcf/filter_samples.text
+```
+
+Remove samples from VCF file
+
+```{bash}
+vcftools --remove ../data/vcf/filter_samples.text --vcf ../data/vcf/acropora_third_filters_m3_p80_x0_S2.singleton.unlinked_0.5_100kbp.imputed_k1.vcf --recode --out ../data/vcf/acro_filt
+```
+
+Check if it worked
+
+```{bash}
+vcf-query -l ../data/vcf/acro_filt.recode.vcf
+```
+
+Write new sample names to csv:
+
+```{bash}
+vcf-query -l ../data/vcf/acro_filt.recode.vcf > ../data/meta/acro_filt_samples.csv
+```
+
+Edit table
+
+```{r}
+library(tidyverse)
+library(here)
+```
+
+```{r}
+dat_meta_acro <- read.csv(here("data/meta/acro_filt_samples.csv"), header = F)
+names(dat_meta_acro) <- "sample"
+
+dat_meta_acro <- dat_meta_acro %>%
+  separate(col = sample, into = c("trash", "sample_id"),remove = F) %>%
+  select(-trash) %>%
+  mutate(t = substr(sample_id,1,1),
+         site = substr(sample_id,2,2),
+         depth = substr(sample_id,3,3),
+         spec = substr(sample_id,4,4),
+         size = substr(sample_id,5,5),
+         rep = substr(sample_id,6,6),
+         short = substr(sample_id,2,5))
+
+
+write.csv(dat_meta_acro, here("data/meta/acro_filt_samples_clean.csv"), row.names = F)
+```
+
+Make strata file
+
+```{r}
+strata_meta_acro <- dat_meta_acro %>% 
+  select(sample, short) %>% 
+  rename(INDIVIDUALS = sample,
+         STRATA = short)
+
+write.table(strata_meta_acro, file = here("data/meta/strata_acro.txt"),
+            sep = "\t", 
+            row.names = F, 
+            col.names = T, 
+            quote = F)
+```

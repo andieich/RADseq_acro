@@ -1,0 +1,93 @@
+---
+title: "Outflank"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(vcfR)
+library(OutFLANK)
+```
+
+<https://baylab.github.io/MarineGenomics/week-7--fst-and-outlier-analysis.html#using-fst-to-find-outliers>
+
+```{r}
+acro_vcf<- read.vcfR(here("data/vcf/acro_filt.recode.vcf"))
+gt_acro <- extract.gt(acro_vcf)
+```
+
+```{r}
+G <- gt_acro
+G[gt_acro %in% c("0/0")] <- 0
+G[gt_acro  %in% c("0/1")] <- 1
+G[gt_acro %in% c("1/1")] <- 2
+G[is.na(G)] <- 9
+tG <- t(G)
+```
+
+```{r}
+dat_meta_acro <- read.csv(here("data/meta/acro_filt_samples_clean.csv"))
+```
+
+Loop over columns in meta for outlier analysis
+
+```{r}
+for (pop_i in c("site", "size", "depth", "short")){
+  print(paste("Processing for",pop_i))
+  # number of samples 
+  pop_i_var <- enquo(pop_i)
+  
+  n_samples <- dat_meta_acro %>% 
+    pull(!!pop_i_var) %>% 
+    unique() %>% 
+    length() 
+  
+  
+  fst <- MakeDiploidFSTMat(tG,locusNames=1:ncol(tG),popNames=dat_meta_acro %>% pull(!!pop_i_var))
+  
+  OF <- OutFLANK(fst,
+                 LeftTrimFraction=0.01,
+                 RightTrimFraction=0.01,
+                 Hmin=0.05,
+                 NumberOfSamples=n_samples,
+                 qthreshold=0.01)
+  
+  P1 <- pOutlierFinderChiSqNoCorr(fst,
+                                  Fstbar=OF$FSTNoCorrbar,
+                                  dfInferred=OF$dfInferred,
+                                  qthreshold=0.05,
+                                  Hmin=0.1)
+  
+  outliers <- P1$OutlierFlag==TRUE #which of the SNPs are outliers?
+  
+  dat <- P1 %>% 
+    select(LocusName, OutlierFlag) %>% 
+    filter(OutlierFlag == "TRUE") %>% 
+    mutate(!!quo_name(pop_i_var) := "yes") %>% 
+    select(-OutlierFlag)
+  
+  if(exists("dat_outlier_outflank")){
+    dat_outlier_outflank <- full_join(dat_outlier_outflank, dat, by = "LocusName") %>% 
+      arrange(LocusName)
+  } else {
+    dat_outlier_outflank <- dat
+  }
+  
+}
+```
+
+```{r}
+names(dat_outlier_outflank) <- c("locus", paste0("outflank_",names(dat_outlier_outflank[-1])))
+
+dat_outlier_outflank <- dat_outlier_outflank %>% 
+  replace(is.na(.), "no")
+
+```
+
+```{r}
+write.csv(dat_outlier_outflank,
+          file = here("data/output/dat_outlier_outflank.csv"), 
+          row.names = F)
+```

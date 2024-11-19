@@ -1,0 +1,75 @@
+---
+title: "DPCA"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(adegenet)
+library(vcfR)
+```
+
+```{r}
+acro_vcf<- read.vcfR(here("data/vcf/acro_filt.recode.vcf"))
+
+dat_meta_acro <- read.csv(here("data/meta/acro_filt_samples_clean.csv"))
+
+acro_gi = vcfR2genind(acro_vcf)
+
+strata(acro_gi) = data.frame(dat_meta_acro)
+ploidy(acro_gi) <- 2
+setPop(acro_gi) = ~short
+```
+
+<http://adegenet.r-forge.r-project.org/files/tutorial-dapc.pdf>
+
+```{r}
+grp <- find.clusters(acro_gi, max.n.clust=40)#200 PC, 2 clusters (not good?)
+```
+
+```{r}
+table(pop(acro_gi), grp$grp)
+```
+
+```{r}
+table.value(table(pop(acro_gi), grp$grp), col.lab=paste("inf", 1:6),
+row.lab=paste("ori", 1:6))
+```
+
+```{r}
+dapc1 <- dapc(acro_gi, grp$grp)#2 PC, 1 discriminant functions 
+```
+
+```{r}
+dapc1
+```
+
+```{r}
+scatter(dapc1)
+```
+
+```{r}
+compoplot(dapc1, posi="bottomright", lab="",
+ncol=1, xlab="individuals", col=funky(6))
+```
+
+```{r}
+temp <- which(apply(dapc1$posterior,1, function(e) all(e<0.99)))
+temp
+```
+
+```{r}
+compoplot(dapc1, subset=temp, posi="bottomright",
+
+ncol=2, col=funky(6))
+```
+
+```{r}
+temp <- a.score(dapc1)
+```
+
+```{r}
+temp <- optim.a.score(dapc1)
+```

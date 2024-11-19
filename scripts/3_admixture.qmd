@@ -1,0 +1,106 @@
+---
+title: "#"
+format: html
+editor: visual
+---
+
+Make strata.txt and copy to data folder
+
+```{bash}
+mkdir ../data/admixture/data
+```
+
+```{r}
+library(tidyverse)
+library(here)
+
+
+dat_meta_acro <- read.csv(here("data/meta/acro_filt_samples_clean.csv")) %>% 
+  separate(col = sample, into = c("trash", "sample_id"),remove = F) %>%
+  select(-trash) %>%
+  mutate(t = substr(sample_id,1,1),
+         site = substr(sample_id,2,2),
+         depth = substr(sample_id,3,3),
+         spec = substr(sample_id,4,4),
+         size = substr(sample_id,5,5),
+         rep = substr(sample_id,6,6),
+         short = substr(sample_id,2,5)) %>% 
+  select(sample, short)
+
+write.table(dat_meta_acro, file = here("data/admixture/data/acro_meta.txt"),
+            sep = "\t", 
+            row.names = F, 
+            col.names = F, 
+            quote = F)
+
+```
+
+Copy `.vcf` to `admixture/data/`. Sym links don't work
+
+```{bash}
+cp ../data/vcf/acro_filt.recode.vcf ../data/admixture/data/acro_filt.recode.vcf
+```
+
+```{bash}
+# dir=`pwd`
+# ln -s  ${dir}/../data/vcf/acro_filt.recode.vcf ${dir}/../data/admixture/data/acro_filt.recode.vcf
+```
+
+Run ADMIXTURE pipeline: <https://github.com/stevemussmann/admixturePipeline>
+
+Installed with Docker
+
+Has to be run from terminal tab. Start Docker
+
+```{bash}
+#| eval: false
+cd data/admixture/
+./runDocker.sh
+```
+
+Then, run admixturePipeline.
+
+```{bash}
+#| eval: false
+admixturePipeline.py -m acro_meta.txt -v acro_filt.recode.vcf -k 1 -K 10 -n 10 -t 100 -a 0.05
+```
+
+Analyse results with Clumpak to find K
+
+```{bash}
+#| eval: false
+submitClumpak.py -p acro_filt.recode -M
+```
+
+For next step, move zipped results to /data folder and unzip
+
+```{bash}
+#| eval: false
+mv clumpakOutput/1731888980464.zip . 
+unzip 1731888980464.zip
+```
+
+distructRerun
+
+```{bash}
+#| eval: false
+distructRerun.py -a . -d 1731888980464/ -k 1 -K 10
+```
+
+cvSum
+
+```{bash}
+#| eval: false
+cvSum.py
+```
+
+runEvalAdmix
+
+```{bash}
+#| eval: false
+runEvalAdmix.py -p acro_filt.recode -k 1 -K 10 -m acro_meta.txt -n 10
+```
+
+Only one population
+
+![](images/cv_file.MajClust.png)

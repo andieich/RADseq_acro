@@ -1,0 +1,98 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(ggvenn)
+library(Rsamtools)
+library(rentrez)
+```
+
+```{r}
+
+dat_outlier_pcadapt <- here("data/output/dat_outlier_pcadapt.csv")
+
+dat_outlier_outflank <- here("data/output/dat_outlier_pcadapt.csv")
+
+dat_outlier <- full_join(dat_outlier_pcadapt,
+                         dat_outlier_outflank, 
+                         by = "locus") %>% 
+  replace(is.na(.), "no") %>% 
+  arrange(locus)
+```
+
+Make a Venn Diagramm
+
+```{r}
+outlier_loci <- list(
+  PCAdapt = dat_outlier$locus[dat_outlier$pcadapt_q_val == "yes"],
+  OutFLANK_short = dat_outlier$locus[dat_outlier$outflank_outflank_short == "yes"],
+  OutFLANK_depth = dat_outlier$locus[dat_outlier$outflank_outflank_depth == "yes"],
+  OutFLANK_size = dat_outlier$locus[dat_outlier$outflank_outflank_size == "yes"]
+)
+
+ggvenn(
+  outlier_loci, 
+  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
+  stroke_size = 0.5, set_name_size = 4
+)
+```
+
+no overlap
+
+```{r}
+ref_acro <- FaFile(here("data/ref_genomes/Ahyacinthus.chrsV1.fasta"))
+indexFa(ref_acro)
+ref_acro_sequences <- scanFa(ref_acro)
+```
+
+```{r}
+get_sequence <- function(loci, vcf, ref_genome_seq, length = 150){
+  df_outliers <- vcf[loci]@fix %>% 
+  as.data.frame()
+  
+  sequences <- lapply(1:nrow(df_outliers), function(i) {
+  chrom <- as.character(df_outliers$CHROM[i])
+  pos <- as.numeric(df_outliers$POS[i])
+  
+  # Verify if chrom exists in ref_genome_sequences
+  if (!chrom %in% names(ref_genome_seq)) {
+    warning(paste("Chromosome", chrom, "not found in reference genome."))
+    return(NA)
+  }
+  
+  # Define the range around the SNP position
+  start <- pos - as.integer(length/2)  
+  end <- pos + as.integer(length/2)-1   
+  
+  # Extract the subsequence
+  subseq(ref_genome_seq[[chrom]], start = start, end = end)
+})
+  
+  return(sequences)
+}
+
+```
+
+```{r}
+acro_vcf<- read.vcfR(here("data/vcf/acro_filt.recode.vcf"))
+```
+
+```{r}
+
+seq_pcadapt_pval_bf <- get_sequence(dat_outlier$locus[dat_outlier$pcadapt_p_val_bf == "yes"],
+                                  acro_vcf,
+                                  ref_acro_sequences)
+```
+
+```{r}
+seq_pcadapt_pval_bf[3][[1]] %>% as.character()
+```
+
+```{r}
+seq_pcadapt_pval_bf[3][[1]] %>% as.character()
+```
