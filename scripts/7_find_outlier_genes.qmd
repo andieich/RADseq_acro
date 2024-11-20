@@ -10,13 +10,14 @@ library(tidyverse)
 library(ggvenn)
 library(Rsamtools)
 library(rentrez)
+library(vcfR)
 ```
 
 ```{r}
 
-dat_outlier_pcadapt <- here("data/output/dat_outlier_pcadapt.csv")
+dat_outlier_pcadapt <- read.csv(here("data/output/dat_outlier_pcadapt.csv"))
 
-dat_outlier_outflank <- here("data/output/dat_outlier_pcadapt.csv")
+dat_outlier_outflank <- read.csv(here("data/output/dat_outlier_outflank.csv"))
 
 dat_outlier <- full_join(dat_outlier_pcadapt,
                          dat_outlier_outflank, 
@@ -95,4 +96,36 @@ seq_pcadapt_pval_bf[3][[1]] %>% as.character()
 
 ```{r}
 seq_pcadapt_pval_bf[3][[1]] %>% as.character()
+```
+
+Writing vcf doenst work with vcfR.
+
+Use vcftools and filter
+
+```{r}
+
+
+acro_vcf_filt <- acro_vcf[dat_outlier$locus[dat_outlier$outflank_outflank_depth == "yes"]]
+acro_vcf_filt <- acro_vcf_filt@fix %>% 
+  as.data.frame() %>% 
+  select(CHROM, POS)
+
+write.table(acro_vcf_filt, file = here("data/snpEff/data/acro_vcf_filt_outflank_depth.txt"),
+            sep = "\t", 
+            row.names = F, 
+            col.names = F, 
+            quote = F)
+```
+
+```{bash}
+vcftools --vcf ../data/vcf/acro_filt.recode.vcf --positions ../data/snpEff/data/acro_vcf_filt_outflank_depth.txt --recode --out ../data/snpEff/data/acro_filt_outflank_depth
+```
+
+Try out snpEff for annotations.
+
+Against *Acropora millepora*
+
+```{bash}
+cd ../data/snpEff/
+java -Xmx8g -jar snpEff.jar -v Acropora_millepora_gca013753865v1 data/acro_filt_outflank_depth.recode.vcf > acro_filt_OUTFLANK_annotated.vcf
 ```
