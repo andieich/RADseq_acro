@@ -84,6 +84,12 @@ names(dat_outlier_outflank) <- c("locus", paste0("outflank_",names(dat_outlier_o
 dat_outlier_outflank <- dat_outlier_outflank %>% 
   replace(is.na(.), "no")
 
+#number of ouliers
+dat_outlier_outflank$outflank_outflank_short %>% table
+dat_outlier_outflank$outflank_outflank_size %>% table
+dat_outlier_outflank$outflank_outflank_site %>% table
+dat_outlier_outflank$outflank_outflank_depth %>% table
+
 ```
 
 ```{r}
