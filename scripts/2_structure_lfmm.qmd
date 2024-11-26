@@ -30,12 +30,14 @@ acro_lea <-  here("data/lfmm/acro_filt.recode.lfmm")
 ```
 
 ```{r}
-project_acro = snmf(acro_lea,
-               K = 1:10,
-               entropy = TRUE,
-               repetitions = 10,
-               project = "new",
-               CPU = 10)
+# project_acro = snmf(acro_lea,
+#                K = 1:10,
+#                entropy = TRUE,
+#                repetitions = 10,
+#                project = "new",
+#                CPU = 10)
+
+project_acro = load.snmfProject(here("data/lfmm/acro_filt.recode.snmfProject"))
 ```
 
 ```{r}
@@ -77,7 +79,46 @@ dat_acro_snmf %>%
   pivot_longer(cols = c("pop1", "pop2"), names_to = "pop", values_to = "frac") %>% 
   ggplot(aes(x = sample_id, y = frac, fill = pop))+
     geom_bar(stat = "identity")+
+  scale_fill_manual(values = my.colors)+
   facet_wrap(site + depth ~ size,scales = "free", ncol = 4)
 ```
 
 No association of pops and site, depth, size
+
+```{r}
+
+pop_size <- dat_acro_snmf %>% 
+  pivot_longer(cols = c("pop1", "pop2"), names_to = "pop", values_to = "frac") %>% 
+  ggplot(aes(x = sample_id, y = frac, fill = pop))+
+    geom_bar(stat = "identity")+
+  scale_fill_manual(values = my.colors)+
+  labs(title = "Size", x = NULL, y = NULL)+
+  facet_grid( ~ size,scales = "free")+
+  theme_minimal()+
+  theme(legend.position = "None")
+
+pop_site <- dat_acro_snmf %>% 
+  pivot_longer(cols = c("pop1", "pop2"), names_to = "pop", values_to = "frac") %>% 
+  ggplot(aes(x = sample_id, y = frac, fill = pop))+
+    geom_bar(stat = "identity")+
+  scale_fill_manual(values = my.colors)+
+  labs(title = "Site", x = NULL, y = NULL)+
+  facet_grid( ~ site,scales = "free")+
+  theme_minimal()+
+  theme(legend.position = "None")
+
+pop_depth <- dat_acro_snmf %>% 
+  pivot_longer(cols = c("pop1", "pop2"), names_to = "pop", values_to = "frac") %>% 
+  ggplot(aes(x = sample_id, y = frac, fill = pop))+
+    geom_bar(stat = "identity")+
+  scale_fill_manual(values = my.colors)+
+  labs(title = "Depth", x = NULL, y = NULL)+
+  facet_grid( ~ depth,scales = "free")+
+  theme_minimal()+
+  theme(legend.position = "None")
+
+library(patchwork)
+
+
+plot_pop <- pop_size + pop_site + pop_depth
+```
