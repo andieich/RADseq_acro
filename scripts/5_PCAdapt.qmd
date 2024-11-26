@@ -25,7 +25,21 @@ acro_bed <- read.pcadapt(here("data/pcadapt/acro_filt.bed"),type = "bed")
 
 ```{r}
 acro_pcadapt <- pcadapt(input = acro_bed, K = 5)
-plot(acro_pcadapt, option = "screeplot")
+plot(acro_pcadapt, option = "screeplot")+
+  theme_minimal()
+```
+
+```{r}
+acro_pcadapt <- pcadapt(input = acro_bed, K = 3)
+```
+
+```{r}
+dat_meta <- read.csv(here("data/meta/acro_filt_samples_clean.csv"))
+```
+
+```{r}
+plot(acro_pcadapt, option = "scores", pop)+
+  theme_minimal()
 ```
 
 ```{r}
