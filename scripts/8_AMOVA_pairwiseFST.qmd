@@ -42,11 +42,6 @@ poppr.amova(acro_gl, ~site) %>%
 ```{r}
 poppr.amova(acro_gl, ~depth) %>% 
   randtest(nrepet = 99) #almost
-
-
-regional.fst <- stamppFst(acro_gl, nboots = 99, percent = 95, nclusters = 4) #99 permutations
-regional.fst$Fsts %>% round(3)
-regional.fst$Pvalues
 ```
 
 ```{r}
