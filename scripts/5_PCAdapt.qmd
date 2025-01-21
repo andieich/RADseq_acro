@@ -9,6 +9,7 @@ library(pcadapt)
 library(here)
 library(tidyverse)
 library(qvalue)
+library(patchwork)
 ```
 
 Following <https://bcm-uga.github.io/pcadapt/articles/pcadapt.html>
@@ -30,7 +31,7 @@ plot(acro_pcadapt, option = "screeplot")+
 ```
 
 ```{r}
-acro_pcadapt <- pcadapt(input = acro_bed, K = 3)
+acro_pcadapt <- pcadapt(input = acro_bed, K = 5)
 ```
 
 ```{r}
@@ -38,8 +39,22 @@ dat_meta <- read.csv(here("data/meta/acro_filt_samples_clean.csv"))
 ```
 
 ```{r}
-plot(acro_pcadapt, option = "scores", pop)+
+pca_size <- plot(acro_pcadapt, option = "scores", pop = dat_meta$size)+
+  labs(title = "Size")+
   theme_minimal()
+
+pca_site <- plot(acro_pcadapt, option = "scores", pop = dat_meta$size)+
+  labs(title = "SiTe")+
+  theme_minimal()
+pca_site <- plot(acro_pcadapt, option = "scores", pop = dat_meta$size)+
+  labs(title = "Site")+
+  theme_minimal()
+
+pca_depth <- plot(acro_pcadapt, option = "scores", pop = dat_meta$depth)+
+  labs(title = "Depth")+
+  theme_minimal()
+
+plots_pca <- pca_size + pca_site + pca_depth
 ```
 
 ```{r}
