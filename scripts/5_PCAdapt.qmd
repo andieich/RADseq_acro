@@ -114,7 +114,9 @@ dat_outlier_pcadapt <- data.frame(locus = c(outliers_q,
 ```
 
 ```{r}
+#save
 write.csv(dat_outlier_pcadapt,
           file = here("data/output/dat_outlier_pcadapt.csv"), 
           row.names = F)
+
 ```
